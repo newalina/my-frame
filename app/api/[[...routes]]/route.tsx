@@ -4,16 +4,6 @@ import { Button, FrameContext, Frog } from "frog";
 import { devtools } from "frog/dev";
 import { handle } from "frog/next";
 import { serveStatic } from "frog/serve-static";
-import {
-  incrementYes,
-  incrementNo,
-  getState,
-  hasVoted,
-  addVote,
-} from "../../utils/state";
-import { v4 as uuidv4 } from "uuid";
-import cookie from "cookie";
-import { ExtendedFrameContext } from "@/app/types/types";
 
 type State = {
   yesCount: number;
@@ -85,6 +75,8 @@ app.frame("/submit", (c) => {
     if (buttonValue === "yes") previousState.yesCount++;
     if (buttonValue === "no") previousState.noCount++;
     uid = c.frameData?.fid || -1;
+
+    console.log(uid);
     if (previousState.votes.has(uid)) {
       voted = true;
     } else {
@@ -184,11 +176,11 @@ app.frame("/submit", (c) => {
 app.frame("/view", (c) => {
   const { deriveState } = c;
 
-  let yesCount = -1;
-  let noCount = -1;
+  // let yesCount = -1;
+  // let noCount = -1;
   const state = deriveState((previousState: State) => {
-    yesCount = previousState.yesCount;
-    noCount = previousState.noCount;
+    // yesCount = previousState.yesCount;
+    // noCount = previousState.noCount;
   });
 
   return c.res({
@@ -224,9 +216,9 @@ app.frame("/view", (c) => {
           }}
         >
           <span style={{ margin: "0 250px 0 10px" }}>
-            Yes: {yesCount.toString()}
+            Yes: {state.yesCount.toString()}
           </span>
-          <span>No: {noCount.toString()}</span>
+          <span>No: {state.noCount.toString()}</span>
         </div>
       </div>
     ),
