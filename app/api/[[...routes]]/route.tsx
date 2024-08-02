@@ -4,7 +4,16 @@ import { Button, Frog } from "frog";
 import { devtools } from "frog/dev";
 import { handle } from "frog/next";
 import { serveStatic } from "frog/serve-static";
-import { incrementYes, incrementNo, getState } from "../../utils/state";
+import {
+  incrementYes,
+  incrementNo,
+  getState,
+  hasVoted,
+  addVote,
+} from "../../utils/state";
+import { v4 as uuidv4 } from "uuid";
+import cookie from "cookie";
+import { ExtendedFrameContext } from "@/app/types/types";
 
 const app = new Frog({
   assetsPath: "/",
@@ -57,60 +66,116 @@ app.frame("/", (c) => {
 });
 
 app.frame("/submit", (c) => {
-  const { buttonValue } = c;
+  const uid = c.frameData?.fid || -1;
 
-  if (buttonValue === "yes") incrementYes();
-  if (buttonValue === "no") incrementNo();
-
-  return c.res({
-    image: (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          backgroundImage: "url(https://i.imgur.com/CJz0Myq.jpeg)",
-          backgroundSize: "100% 200%",
-          backgroundPosition: "0 -50%",
-          filter: "brightness(75%)",
-          flexDirection: "column",
-          flexWrap: "nowrap",
-          height: "100%",
-          justifyContent: "center",
-          textAlign: "center",
-          width: "100%",
-        }}
-      >
+  if (hasVoted(uid)) {
+    return c.res({
+      image: (
         <div
           style={{
             display: "flex",
-            color: "white",
-            fontSize: 60,
-            fontStyle: "normal",
-            letterSpacing: "-0.025em",
-            lineHeight: 1.4,
-            padding: "0 120px",
-            whiteSpace: "pre-wrap",
+            alignItems: "center",
+            backgroundImage: "url(https://i.imgur.com/CJz0Myq.jpeg)",
+            backgroundSize: "100% 200%",
+            backgroundPosition: "0 -50%",
+            filter: "brightness(75%)",
+            flexDirection: "column",
+            flexWrap: "nowrap",
+            height: "100%",
+            justifyContent: "center",
             textAlign: "center",
-            filter: "brightness(100%)",
+            width: "100%",
           }}
         >
-          {buttonValue === "yes"
-            ? "In Kramer we trust"
-            : "You really don't think so?"}
+          <div
+            style={{
+              display: "flex",
+              color: "white",
+              fontSize: 60,
+              fontStyle: "normal",
+              letterSpacing: "-0.025em",
+              lineHeight: 1.4,
+              padding: "0 120px",
+              whiteSpace: "pre-wrap",
+              textAlign: "center",
+              filter: "brightness(100%)",
+            }}
+          >
+            You already voted
+          </div>
         </div>
-      </div>
-    ),
-    intents: [
-      <Button.Link href="https://www.newalina.com/">Follow</Button.Link>,
-      <Button action="/view">View</Button>,
-    ],
-  });
+      ),
+      intents: [
+        <Button.Link href="https://www.newalina.com/">Follow</Button.Link>,
+        <Button action="/view">View</Button>,
+      ],
+    });
+  } else {
+    addVote(uid);
+
+    const { buttonValue } = c;
+
+    if (buttonValue === "yes") incrementYes();
+    if (buttonValue === "no") incrementNo();
+
+    // userId = uuidv4();
+    // // Set cookie in response headers
+    // c.res().data?.headers?.set(
+    //   "Set-Cookie",
+    //   cookie.serialize("userId", userId, {
+    //     httpOnly: true,
+    //     maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+    //   })
+    // );
+
+    return c.res({
+      image: (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            backgroundImage: "url(https://i.imgur.com/CJz0Myq.jpeg)",
+            backgroundSize: "100% 200%",
+            backgroundPosition: "0 -50%",
+            filter: "brightness(75%)",
+            flexDirection: "column",
+            flexWrap: "nowrap",
+            height: "100%",
+            justifyContent: "center",
+            textAlign: "center",
+            width: "100%",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              color: "white",
+              fontSize: 60,
+              fontStyle: "normal",
+              letterSpacing: "-0.025em",
+              lineHeight: 1.4,
+              padding: "0 120px",
+              whiteSpace: "pre-wrap",
+              textAlign: "center",
+              filter: "brightness(100%)",
+            }}
+          >
+            {buttonValue === "yes"
+              ? "In Kramer we trust"
+              : "You really don't think so?"}
+          </div>
+        </div>
+      ),
+      intents: [
+        <Button.Link href="https://www.newalina.com/">Follow</Button.Link>,
+        <Button action="/view">View</Button>,
+      ],
+    });
+  }
 });
 
 app.frame("/view", (c) => {
   const state = getState();
-
-  console.log("State in /view:", state);
 
   return c.res({
     image: (
