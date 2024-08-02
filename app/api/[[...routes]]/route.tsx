@@ -1,6 +1,6 @@
 /** @jsxImportSource frog/jsx */
 
-import { Button, Frog } from "frog";
+import { Button, FrameContext, Frog } from "frog";
 import { devtools } from "frog/dev";
 import { handle } from "frog/next";
 import { serveStatic } from "frog/serve-static";
@@ -15,7 +15,18 @@ import { v4 as uuidv4 } from "uuid";
 import cookie from "cookie";
 import { ExtendedFrameContext } from "@/app/types/types";
 
-const app = new Frog({
+type State = {
+  yesCount: number;
+  noCount: number;
+  votes: Set<number>;
+};
+
+const app = new Frog<{ State: State }>({
+  initialState: {
+    yesCount: 0,
+    noCount: 0,
+    votes: new Set<number>(),
+  },
   assetsPath: "/",
   basePath: "/api",
   title: "My Kramer Frame",
@@ -66,11 +77,22 @@ app.frame("/", (c) => {
 });
 
 app.frame("/submit", (c) => {
-  const uid = c.frameData?.fid || -1;
-  const state = getState();
-  console.log(state.votes);
+  const { buttonValue, deriveState } = c;
 
-  if (hasVoted(uid)) {
+  let uid = -1;
+  let voted = false;
+  const state = deriveState((previousState: State) => {
+    if (buttonValue === "yes") previousState.yesCount++;
+    if (buttonValue === "no") previousState.noCount++;
+    uid = c.frameData?.fid || -1;
+    if (previousState.votes.has(uid)) {
+      voted = true;
+    } else {
+      previousState.votes.add(uid);
+    }
+  });
+
+  if (voted) {
     return c.res({
       image: (
         <div
@@ -113,23 +135,6 @@ app.frame("/submit", (c) => {
       ],
     });
   } else {
-    addVote(uid);
-
-    const { buttonValue } = c;
-
-    if (buttonValue === "yes") incrementYes();
-    if (buttonValue === "no") incrementNo();
-
-    // userId = uuidv4();
-    // // Set cookie in response headers
-    // c.res().data?.headers?.set(
-    //   "Set-Cookie",
-    //   cookie.serialize("userId", userId, {
-    //     httpOnly: true,
-    //     maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
-    //   })
-    // );
-
     return c.res({
       image: (
         <div
@@ -177,7 +182,14 @@ app.frame("/submit", (c) => {
 });
 
 app.frame("/view", (c) => {
-  const state = getState();
+  const { deriveState } = c;
+
+  let yesCount = -1;
+  let noCount = -1;
+  const state = deriveState((previousState: State) => {
+    yesCount = previousState.yesCount;
+    noCount = previousState.noCount;
+  });
 
   return c.res({
     image: (
@@ -212,9 +224,9 @@ app.frame("/view", (c) => {
           }}
         >
           <span style={{ margin: "0 250px 0 10px" }}>
-            Yes: {state.yesCount.toString()}
+            Yes: {yesCount.toString()}
           </span>
-          <span>No: {state.noCount.toString()}</span>
+          <span>No: {noCount.toString()}</span>
         </div>
       </div>
     ),
