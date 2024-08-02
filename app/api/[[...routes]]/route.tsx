@@ -67,6 +67,8 @@ app.frame("/", (c) => {
 
 app.frame("/submit", (c) => {
   const uid = c.frameData?.fid || -1;
+  const state = getState();
+  console.log(state.votes);
 
   if (hasVoted(uid)) {
     return c.res({
